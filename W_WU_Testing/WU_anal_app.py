@@ -12,9 +12,9 @@ with st.expander("Data source", expanded=True):
     st.markdown("""
 | Variable | Value | Source |
 |---|---|---|
-| **m_dry_initial** | 0.0867 g | "CMVN vs FKS50" sheet, Row: :CMVN+EG-1:, Column *m dry* (original state) |
-| **m_wet** | 0.0961 g | CMVN vs FKS50" sheet, Row: :CMVN+EG-1, column *m wet* (after sorption) |
-| **m_dry** | 0.0857 g | CMVN vs FKS50" sheet, Row: :CMVN+EG-1, column *m dry* (after sorption) |
+| **m_dry_initial** | 0.0867 g | "CMVN vs FKS50" sheet, Row: :CMVN+EG-1:, Column: *m dry* (original state) |
+| **m_wet** | 0.0961 g | CMVN vs FKS50" sheet, Row: :CMVN+EG-1, Column: *m wet* (after sorption) |
+| **m_dry** | 0.0857 g | CMVN vs FKS50" sheet, Row: :CMVN+EG-1, Column: *m dry* (after sorption) |
 | **m_solute** | 0.0000719 g (default) | CMVN vs FKS50" sheet, Row: :CMVN+EG-1, *EG/PEGs mass in membrane* = 0.0719 mg |
 
 The updated WU formula is:
