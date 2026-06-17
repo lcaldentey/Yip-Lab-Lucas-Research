@@ -8,14 +8,14 @@ st.title("Water Uptake Correction Model")
 st.markdown("**Trial: CMVN + EG, Membrane 1 (CMVN+EG-1)**")
 
 # ── Data source explanation ──────────────────────────────────────────────────
-with st.expander("Data source — how each value was found", expanded=True):
+with st.expander("Data source", expanded=True):
     st.markdown("""
 | Variable | Value | Source |
 |---|---|---|
-| **m_dry_initial** | 0.0867 g | Water uptake sheet, CMVN+EG-1 row, column *m dry* (original state) |
-| **m_wet** | 0.0961 g | Water uptake sheet, CMVN+EG-1 row, column *m wet* (after sorption) |
-| **m_dry** | 0.0857 g | Water uptake sheet, CMVN+EG-1 row, column *m dry* (after sorption) |
-| **m_solute** | 0.0000719 g (default) | CMVN vs FKS50 sheet, CMVN EG M1 row, *EG/PEGs mass in membrane* = 0.0719 mg |
+| **m_dry_initial** | 0.0867 g | "CMVN vs FKS50" sheet, Row: :CMVN+EG-1:, Column *m dry* (original state) |
+| **m_wet** | 0.0961 g | CMVN vs FKS50" sheet, Row: :CMVN+EG-1, column *m wet* (after sorption) |
+| **m_dry** | 0.0857 g | CMVN vs FKS50" sheet, Row: :CMVN+EG-1, column *m dry* (after sorption) |
+| **m_solute** | 0.0000719 g (default) | CMVN vs FKS50" sheet, Row: :CMVN+EG-1, *EG/PEGs mass in membrane* = 0.0719 mg |
 
 The updated WU formula is:
 
