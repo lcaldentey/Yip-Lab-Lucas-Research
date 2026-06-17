@@ -33,7 +33,6 @@ st.sidebar.header("Controls")
 
 # m_solute input
 st.sidebar.subheader("m_solute")
-st.sidebar.markdown("Default value from CMVN EG M1 desorption TOC data.")
 m_solute_mg = st.sidebar.number_input(
     "m_solute (mg)",
     min_value=0.0,
