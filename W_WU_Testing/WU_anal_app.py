@@ -163,10 +163,3 @@ col_y.metric("WU at f_residual = 1 (PEG 1000, non-volatile)",
              f"{wu_at_1:.4f} %")
 col_z.metric("Total WU range across all f_residual",
              f"{abs(wu_at_1 - wu_at_0)*100:.4f} % points")
-
-st.caption(
-    "Note: for EG (f_residual = 0), the solute evaporates completely during vacuum drying alongside water, "
-    "so the uncorrected formula overestimates m_water. The corrected WU subtracts the evaporated solute mass "
-    "from the numerator, reducing the apparent water content. The effect is small here because m_solute (0.0719 mg) "
-    "is very small relative to m_wet − m_dry (10.4 mg)."
-)
