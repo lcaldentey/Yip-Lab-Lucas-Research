@@ -80,7 +80,7 @@ col3.metric(
     help="m_solute × (1 − f_residual) — portion of solute lost during vacuum drying"
 )
 col4.metric(
-    "f_residual selected",
+    "f_residual",
     f"{f_residual:.2f}"
 )
 
