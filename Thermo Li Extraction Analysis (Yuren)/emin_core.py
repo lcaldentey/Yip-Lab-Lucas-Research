@@ -23,6 +23,11 @@ Physics notes (carried over from emin.py / prior validation):
 
 from __future__ import annotations
 
+# Bump this any time CalcInputs/CalcResult's fields change shape. app.py checks
+# this at import time and shows a loud, specific error rather than silently
+# defaulting missing fields to 0 if the two files are out of sync.
+SCHEMA_VERSION = 3
+
 import math
 import tempfile
 from dataclasses import dataclass, field
@@ -40,7 +45,7 @@ MAX_PRECIP_ITER = 10
 EBAL_TOL = 5e-3           # relative tolerance on the ΣE_i = E final check
 
 # Fixed, non-configurable per the source material (not exposed to the UI):
-#   - 25 degC: Currently hardcoded value. But CAN allow for variation and provide an advanced setting section to allow users to change.
+#   - 25 degC: both Yuren's equations and Seeley's code hardcode this.
 #   - 20 mol/kgw: the "I > 20 M?" guard from the flowchart, as given.
 FIXED_TEMP_C = 25.0
 I_LIMIT = 20.0
@@ -267,10 +272,11 @@ def run_calculation(inp: CalcInputs) -> CalcResult:
                         "Cl-": "Cl\u207b", "H2O": "H\u2082O"}
     E_components = {display_species.get(k, k): v for k, v in E_i.items()}
 
-    #Below is the simplified E_min, LW taken from Seeley's "Theoretical
-    # Limit" formulation. It basically treats the brine as pure LiCl and ignores
-    #the Na/Mg. Wont equal the E_min exactly.
-
+    # E_min,LW — simplified LiCl-only reference value (Seeley's "Theoretical
+    # Limit" formulation): treats the brine as pure LiCl, ignoring Na/Mg and
+    # the water solvent-work term entirely. Not expected to equal E_min
+    # above except in a pure-LiCl feed — it's a quick floor/sanity check,
+    # shown alongside the full result rather than in place of it.
     E_min_LW = RT * math.log((a["P"]["Li+"] / a["F"]["Li+"]) * (a["P"]["Cl-"] / a["F"]["Cl-"]))
 
     # Water is added to each stream dict two ways: "H2O" as its molality
