@@ -261,8 +261,6 @@ with right:
         for ion in ("Li", "Na", "Mg", "Cl") if ion in prod
     )
     st.markdown("| Ion | mol/kgw |\n|---|---|\n" + ion_rows)
-    st.caption("Same product-stream values used in the plot and chart above, "
-               "shown here as a quick reference for how much of each ion is present.")
 
 # --- secondary metrics (demoted, shown below the plot) -------------------
 d1, d2, d3 = st.columns(3)
