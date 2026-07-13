@@ -6,7 +6,7 @@ Run locally with:
     streamlit run app.py
 
 This wraps emin_core.py (must be in the same folder) — a PHREEQC/Pitzer-based
-implementation of a single-point E_min calculation for a Li+Na+Mg brine,
+implementation of Yuren's single-point E_min calculation for a Li+Na+Mg brine,
 including the oversaturation / precipitation loop from the flowchart.
 """
 
@@ -20,7 +20,23 @@ import streamlit as st
 
 from emin_core import CalcInputs, run_calculation, MW
 
+APP_EXPECTS_SCHEMA = 3
+try:
+    from emin_core import SCHEMA_VERSION
+except ImportError:
+    SCHEMA_VERSION = 0  # emin_core.py predates the version marker entirely
+
 st.set_page_config(page_title="E_min Calculator", layout="wide")
+
+if SCHEMA_VERSION != APP_EXPECTS_SCHEMA:
+    st.error(
+        f"**emin_core.py is out of date** (schema {SCHEMA_VERSION}, this app.py needs "
+        f"schema {APP_EXPECTS_SCHEMA}). The file next to app.py wasn't replaced with the "
+        "latest version — re-download emin_core.py and overwrite the old one, then rerun. "
+        "(Run `python3 -c \"import emin_core; print(emin_core.__file__)\"` in your terminal "
+        "if you're unsure which file is actually being loaded.)"
+    )
+    st.stop()
 
 st.markdown(
     """
@@ -64,8 +80,9 @@ st.sidebar.subheader("Feed composition")
 UNIT_LABELS = {"mol/kgw (molality)": "mol/kgw", "mol/L (molarity)": "mol/L", "ppm (mg/kg)": "ppm"}
 IONS_UI = ("Li", "Na", "Mg")
 
-for _ion in IONS_UI:
-    st.session_state.setdefault(f"canon_{_ion}", 0.0)   # always mol/kgw
+st.session_state.setdefault("canon_Li", 0.01)   # mol/kgw
+st.session_state.setdefault("canon_Na", 0.0)
+st.session_state.setdefault("canon_Mg", 0.0)
 st.session_state.setdefault("conc_unit_select", "mol/kgw (molality)")
 
 
@@ -163,27 +180,26 @@ if db_choice == "Upload custom .dat":
 
 run_clicked = st.sidebar.button("Run calculation", type="primary", width="stretch")
 
-st.sidebar.space("medium")
-
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 st.sidebar.markdown(
     """
     <span style="color:#1e5473">
-    The following calculator is provided by the Yip Lab's Dr. Yuren Feng, Anna Seeley McGillis [PhD], Lucas Caldentey, and Dr. Ngai Yin Yip 
+    The following calculator is provided by the Yip Lab's Dr. Yuren Feng, Anna Seeley
+    McGillis [PhD], Lucas Caldentey, and Dr. Ngai Yin Yip
     </span>
-    """, 
-    unsafe_allow_html=True
+    """,
+    unsafe_allow_html=True,
 )
-
 
 # ----------------------------------------------------------------------------
 # Main panel
 # ----------------------------------------------------------------------------
 st.title("Minimum Separation Energy ($E_{\\mathrm{min}}$) Calculator")
 st.caption(
-    "This site serves as a single-point calculation of the thermodynamic minimum energy to concentrate lithium "
-    "from a Li\u207a\u2013Na\u207a\u2013Mg\u00b2\u207a brine, via PHREEQC/Pitzer activities and "
-    "various energy-balance equations. Any oversaturated salt is precipitated and the "
-    "system is re-equilibrated automatically."
+    "This site serves as a single-point calculation of the thermodynamic minimum energy "
+    "to concentrate lithium from a Li\u207a\u2013Na\u207a\u2013Mg\u00b2\u207a brine, via "
+    "PHREEQC/Pitzer activities and various energy-balance equations. Any oversaturated "
+    "salt is precipitated and the system is re-equilibrated automatically."
 )
 
 if not run_clicked:
@@ -238,11 +254,21 @@ with right:
     else:
         st.write("None \u2014 all candidate phases stayed under-saturated (SI \u2264 0).")
 
+    st.markdown("**Product stream composition**")
+    prod = result.streams["Product (mol/kgw)"]
+    ion_rows = "\n".join(
+        f"| {ion} | {prod.get(ion, 0.0):.4f} |"
+        for ion in ("Li", "Na", "Mg", "Cl") if ion in prod
+    )
+    st.markdown("| Ion | mol/kgw |\n|---|---|\n" + ion_rows)
+    st.caption("Same product-stream values used in the plot and chart above, "
+               "shown here as a quick reference for how much of each ion is present.")
+
 # --- secondary metrics (demoted, shown below the plot) -------------------
 d1, d2, d3 = st.columns(3)
 d1.metric("$E_{\\mathrm{min,LW}}$ (LiCl-only ref.)", f"{result.E_min_LW:.3f} kJ/mol Li",
-          help="This is a simplified reference value treating the brine as pure LiCl (ignores Na, Mg, "
-               "and water). It is not expected to match $E_{\\mathrm{min}}$ above except for a pure-LiCl feed.")
+          help="Simplified reference value treating the brine as pure LiCl (ignores Na, Mg, "
+               "and water). Not expected to match $E_{\\mathrm{min}}$ above except for a pure-LiCl feed.")
 d2.metric("Feed ionic strength", f"{result.I_feed:.2f} mol/kgw")
 d3.metric("PHREEQC simulations run", result.n_simulations)
 
@@ -252,18 +278,17 @@ st.divider()
 st.subheader("Stream compositions (molal, mol/kgw)")
 ion_order = [c for c in ("Li", "Na", "Mg", "Cl")
              if any(c in comp for comp in result.streams.values())]
-header = "| Stream | " + " | ".join(ion_order) + " | H2O (mol/kgw) | H2O (kg / kg feed water) |"
-sep = "|" + "---|" * (len(ion_order) + 3)
+header = "| Stream | " + " | ".join(ion_order) + " | H2O (kg / kg feed water) |"
+sep = "|" + "---|" * (len(ion_order) + 2)
 body = "\n".join(
     "| " + name + " | " + " | ".join(f"{comp.get(ion, 0.0):.4f}" for ion in ion_order)
-    + f" | {comp.get('H2O', 0.0):.2f} | {comp.get('H2O_kgw', 0.0):.4f} |"
+    + f" | {comp.get('H2O_kgw', 0.0):.4f} |"
     for name, comp in result.streams.items()
 )
 st.markdown("\n".join([header, sep, body]))
-st.caption("H2O molality is \u224855.5 mol/kgw by definition in every stream (moles of water "
-           "per kg of that same water) \u2014 shown for completeness. The kg-per-kg-feed-water "
-           "column is the quantity that actually varies, and shows how the feed's water is "
-           "split across the three streams.")
+st.caption("Water is shown as mass relative to the feed's (1.0 for the Feed itself, "
+           "Y/CF for the Product, 1\u2212Y/CF for the Retentate) \u2014 how the feed's water "
+           "splits across the three streams.")
 
 # --- download ---------------------------------------------------------
 st.divider()
@@ -285,9 +310,9 @@ st.download_button(
 
 with st.expander("What is $E_{\\mathrm{min}}$, and what do these inputs mean?"):
     st.markdown("""
-- **$E_{\\mathrm{min}}$** is the least energy that thermodynamically allows for separating lithium from
-  this particular brine at the specified recovery and concentration \u2014 It serves more as a benchmark rather than 
-  a prediction of what any real process will achieve.
+- **$E_{\\mathrm{min}}$** is the least energy that thermodynamically allows for separating lithium
+  from this particular brine at the specified recovery and concentration \u2014 it serves more as a
+  benchmark rather than a prediction of what any real process will achieve.
 - **$E_{\\mathrm{min,LW}}$** is a simplified variation on $E_{\\mathrm{min}}$ that assumes the brine
   is pure LiCl, ignoring Na, Mg, and the water term.
 - **Y (recovery)** is the fraction of feed lithium captured in the product.
