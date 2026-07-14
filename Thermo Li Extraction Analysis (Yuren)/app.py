@@ -38,24 +38,54 @@ if SCHEMA_VERSION != APP_EXPECTS_SCHEMA:
     )
     st.stop()
 
-st.markdown(
-    """
-    <style>
-    [data-testid="stAppViewContainer"] {
-        background-color: #1e5473;
-    }
-    [data-testid="stSidebar"] {
-        background-color: #749ef2;
-    }
-    /* Distinguish the units selector from the numeric input boxes below it */
-    [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-        background-color: #fff3cd;
-        border: 2px solid #b8860b;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+st.markdown("""
+<style>
+
+/* Main app background */
+[data-testid="stAppViewContainer"]{
+    background-color:#1e5473;
+    color:white;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"]{
+    background-color:#749ef2;
+    color:white;
+}
+
+/* Main text */
+[data-testid="stMarkdownContainer"],
+p,
+label,
+span,
+div,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6{
+    color:white !important;
+}
+
+/* Metric values */
+[data-testid="stMetricValue"]{
+    color:white !important;
+}
+
+/* Metric labels */
+[data-testid="stMetricLabel"]{
+    color:white !important;
+}
+
+/* Tabs */
+button[data-baseweb="tab"]{
+    color:white !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 
 # ----------------------------------------------------------------------------
 # Sidebar — inputs
@@ -261,6 +291,8 @@ with right:
         for ion in ("Li", "Na", "Mg", "Cl") if ion in prod
     )
     st.markdown("| Ion | mol/kgw |\n|---|---|\n" + ion_rows)
+    st.caption("Same product-stream values used in the plot and chart above, "
+               "shown here as a quick reference for how much of each ion is present.")
 
 # --- secondary metrics (demoted, shown below the plot) -------------------
 d1, d2, d3 = st.columns(3)
