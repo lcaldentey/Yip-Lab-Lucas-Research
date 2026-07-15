@@ -20,6 +20,8 @@ import streamlit as st
 
 from emin_core import CalcInputs, run_calculation, MW
 
+import base64 #Used almost explicitly only for embedded container colorization
+
 APP_EXPECTS_SCHEMA = 3
 try:
     from emin_core import SCHEMA_VERSION
@@ -38,63 +40,94 @@ if SCHEMA_VERSION != APP_EXPECTS_SCHEMA:
     )
     st.stop()
 
+#CSS Navigation Edits (NOT Supported)
 st.markdown("""
-<style>
+    <style>
+    
+    /* Top toolbar */
+    header[data-testid="stHeader"] {
+        background-color: #1e5473;
+    }
+    /* Pull the page content (logo/title row) up closer to the top, since
+       Streamlit reserves a fair amount of blank space above it by default. */
+    [data-testid="stAppViewBlockContainer"] {
+        padding-top: 1.5rem;
+    }
+    .block-container {
+        padding-top: 1.5rem;
+    }
 
-/* Main app background */
-[data-testid="stAppViewContainer"]{
-    background-color:#1e5473;
-    color:white;
-}
+    </style>
+    """, unsafe_allow_html=True)
 
-/* Sidebar */
-[data-testid="stSidebar"]{
-    background-color:#749ef2;
-    color:white;
-}
+base = "dark"
 
-/* Main text */
-[data-testid="stMarkdownContainer"],
-p,
-label,
-span,
-div,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6{
-    color:white !important;
-}
-
-/* Metric values */
-[data-testid="stMetricValue"]{
-    color:white !important;
-}
-
-/* Metric labels */
-[data-testid="stMetricLabel"]{
-    color:white !important;
-}
-
-/* Tabs */
-button[data-baseweb="tab"]{
-    color:white !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
+#___
+st.markdown(
+    """
+    <style>
+    [data-testid="stAppViewContainer"] {
+        background-color: #1e5473;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #749ef2;
+    }
+    /* Distinguish the units selector from the numeric input boxes below it */
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        background-color: #fff3cd;
+        border: 2px solid #b8860b;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ----------------------------------------------------------------------------
 # Sidebar — inputs
 # ----------------------------------------------------------------------------
+
 logo_path = Path(__file__).parent / "YIP_LAB_Logo.png"
-if logo_path.exists():
-    st.sidebar.image(str(logo_path), width="stretch")
-else:
-    st.sidebar.caption("(YIP_LAB_Logo.png not found next to app.py — place it there to show the logo.)")
+
+col1, col2 = st.columns([3, 1], vertical_alignment="center")
+
+with col1:
+    st.title("Minimum Separation Energy ($E_{\\mathrm{min}}$) Calculator")
+    st.caption(
+    "This site serves as a single-point calculation of the thermodynamic minimum energy "
+    "to concentrate lithium from a Li\u207a\u2013Na\u207a\u2013Mg\u00b2\u207a brine, via "
+    "PHREEQC/Pitzer activities and various energy-balance equations. Any oversaturated "
+    "salt is precipitated and the system is re-equilibrated automatically."
+)
+
+#with col2:
+#    with st.container(border=True):
+#        st.image(str(logo_path), use_container_width=True)
+
+with open(logo_path, "rb") as f:
+    img = base64.b64encode(f.read()).decode()
+
+with col2:
+    st.markdown(
+        f"""
+        <div style="
+            background:#4884c2;
+            border:1px solid #DDD;
+            border-radius:12px;
+            padding:16px;
+            margin-top:0.6rem;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+        ">
+            <a href="https://yiplab-h2o-e-env.eee.columbia.edu/" target="_blank">
+                <img src="data:image/png;base64,{img}" style="width:100%; max-width:300px;">
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.caption(":blue[The following calculator is provided by the Yip Lab's Dr. Yuren Feng, Anna Seeley McGillis [PhD], Lucas Caldentey, and supervised by Dr. Ngai Yin Yip]")
 
 st.sidebar.title("Inputs")
 
@@ -186,8 +219,10 @@ Li_val, Na_val, Mg_val = (st.session_state["canon_Li"], st.session_state["canon_
                            st.session_state["canon_Mg"])
 
 st.sidebar.subheader("Process parameters")
-Y = st.sidebar.slider("Li recovery, Y", min_value=0.01, max_value=0.99, value=0.90, step=0.01)
-CF = st.sidebar.number_input("Concentration factor, CF", min_value=1.01, value=30.0, step=1.0)
+Y = st.sidebar.slider("Li recovery, Y", min_value=0.01, max_value=0.99, value=0.90, step=0.01,
+                         help=" The fraction of feed lithium that is captured in the product.")
+CF = st.sidebar.number_input("Concentration factor, CF", min_value=1.01, value=30.0, step=1.0,
+                                help="How many times more concentrated the product's lithium is versus the feed.")
 S_Na = st.sidebar.number_input("Selectivity S (Li/Na)", min_value=0.01, value=100.0, step=1.0,
                                 help="Larger = better rejection of Na from the product.")
 S_Mg = st.sidebar.number_input("Selectivity S (Li/Mg)", min_value=0.01, value=100.0, step=1.0,
@@ -211,26 +246,10 @@ if db_choice == "Upload custom .dat":
 run_clicked = st.sidebar.button("Run calculation", type="primary", width="stretch")
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
-st.sidebar.markdown(
-    """
-    <span style="color:#1e5473">
-    The following calculator is provided by the Yip Lab's Dr. Yuren Feng, Anna Seeley
-    McGillis [PhD], Lucas Caldentey, and Dr. Ngai Yin Yip
-    </span>
-    """,
-    unsafe_allow_html=True,
-)
 
 # ----------------------------------------------------------------------------
-# Main panel
+# Main panel (The title was already added when generating the Yip Logo, :0 )
 # ----------------------------------------------------------------------------
-st.title("Minimum Separation Energy ($E_{\\mathrm{min}}$) Calculator")
-st.caption(
-    "This site serves as a single-point calculation of the thermodynamic minimum energy "
-    "to concentrate lithium from a Li\u207a\u2013Na\u207a\u2013Mg\u00b2\u207a brine, via "
-    "PHREEQC/Pitzer activities and various energy-balance equations. Any oversaturated "
-    "salt is precipitated and the system is re-equilibrated automatically."
-)
 
 if not run_clicked:
     st.info("Set your inputs in the sidebar and click **Run calculation**.")
@@ -253,13 +272,23 @@ for w in result.warnings:
     st.warning(w)
 
 # --- headline metrics (emphasized) ---------------------------------------
-c1, c2 = st.columns(2)
+# E_min and Product ionic strength stay the two "hero" numbers; Precipitated
+# solids now sits alongside them (moved up from beside the chart below) since
+# it's a result worth seeing at a glance, not just a footnote.
+c1, c2, c3 = st.columns([1, 1, 1.2])
 c1.metric("$E_{\\mathrm{min}}$", f"{result.E_min:.3f} kJ/mol Li")
 c2.metric("Product ionic strength", f"{result.I_product:.2f} mol/kgw")
+with c3:
+    st.markdown("**Precipitated solids**")
+    if result.solids:
+        rows = "\n".join(f"| {ph} | {v:.4f} |" for ph, v in result.solids.items())
+        st.markdown("| Phase | mol / mol Li recovered |\n|---|---|\n" + rows)
+    else:
+        st.caption("None \u2014 all candidate phases stayed under-saturated (SI \u2264 0).")
 
 st.divider()
 
-# --- species contribution chart -----------------------------------------
+# --- species contribution chart, and Stream-Composition chart ------------
 left, right = st.columns([3, 2])
 
 with left:
@@ -277,22 +306,23 @@ with left:
                "Bars should sum to $E_{\\mathrm{min}}$ above (the pipeline checks this internally).")
 
 with right:
-    st.subheader("Precipitated solids")
-    if result.solids:
-        rows = "\n".join(f"| {ph} | {v:.4f} |" for ph, v in result.solids.items())
-        st.markdown("| Phase | mol / mol Li recovered |\n|---|---|\n" + rows)
-    else:
-        st.write("None \u2014 all candidate phases stayed under-saturated (SI \u2264 0).")
-
-    st.markdown("**Product stream composition**")
-    prod = result.streams["Product (mol/kgw)"]
-    ion_rows = "\n".join(
-        f"| {ion} | {prod.get(ion, 0.0):.4f} |"
-        for ion in ("Li", "Na", "Mg", "Cl") if ion in prod
-    )
-    st.markdown("| Ion | mol/kgw |\n|---|---|\n" + ion_rows)
-    st.caption("Same product-stream values used in the plot and chart above, "
-               "shown here as a quick reference for how much of each ion is present.")
+    st.subheader("Feed, Product & Retentate Composition")
+    stream_ion_order = [c for c in ("Li", "Na", "Mg", "Cl")
+                         if any(c in comp for comp in result.streams.values())]
+    stream_colors = {"Feed (mol/kgw)": "#9285f2", "Product (mol/kgw)": "#8df0ec",
+                      "Retentate (mol/kgw)": "#4884c2"}
+    fig2 = go.Figure()
+    for stream_name, comp in result.streams.items():
+        fig2.add_trace(go.Bar(
+            name=stream_name.replace(" (mol/kgw)", ""),
+            x=stream_ion_order,
+            y=[comp.get(ion, 0.0) for ion in stream_ion_order],
+            marker_color=stream_colors.get(stream_name),
+        ))
+    fig2.update_layout(barmode="group", yaxis_title="mol / kgw", height=320,
+                        margin=dict(l=10, r=10, t=10, b=10),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02))
+    st.plotly_chart(fig2, width="stretch")
 
 # --- secondary metrics (demoted, shown below the plot) -------------------
 d1, d2, d3 = st.columns(3)
@@ -304,8 +334,8 @@ d3.metric("PHREEQC simulations run", result.n_simulations)
 
 st.divider()
 
-# --- stream compositions ---------------------------------------------------
-st.subheader("Stream compositions (molal, mol/kgw)")
+# --- stream Cmpositions ---------------------------------------------------
+st.subheader("Stream Compositions (molal, mol/kgw)")
 ion_order = [c for c in ("Li", "Na", "Mg", "Cl")
              if any(c in comp for comp in result.streams.values())]
 header = "| Stream | " + " | ".join(ion_order) + " | H2O (kg / kg feed water) |"
@@ -316,9 +346,7 @@ body = "\n".join(
     for name, comp in result.streams.items()
 )
 st.markdown("\n".join([header, sep, body]))
-st.caption("Water is shown as mass relative to the feed's (1.0 for the Feed itself, "
-           "Y/CF for the Product, 1\u2212Y/CF for the Retentate) \u2014 how the feed's water "
-           "splits across the three streams.")
+
 
 # --- download ---------------------------------------------------------
 st.divider()
@@ -338,7 +366,7 @@ st.download_button(
     mime="text/csv",
 )
 
-with st.expander("What is $E_{\\mathrm{min}}$, and what do these inputs mean?"):
+with st.expander("What is $E_{\\mathrm{min}}$, and what do these inputs mean? [NOTE WILL RE-WRITE DEFINITIONS WITH MORE DETAIL]"):
     st.markdown("""
 - **$E_{\\mathrm{min}}$** is the least energy that thermodynamically allows for separating lithium
   from this particular brine at the specified recovery and concentration \u2014 it serves more as a
