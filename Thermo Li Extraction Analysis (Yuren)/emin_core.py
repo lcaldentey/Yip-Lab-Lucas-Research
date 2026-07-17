@@ -26,7 +26,7 @@ from __future__ import annotations
 # Bump this any time CalcInputs/CalcResult's fields change shape. app.py checks
 # this at import time and shows a loud, specific error rather than silently
 # defaulting missing fields to 0 if the two files are out of sync.
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 import math
 import tempfile
@@ -83,6 +83,7 @@ class CalcResult:
     E_min: float | None = None
     E_min_LW: float | None = None     # simplified LiCl-only reference value
     E_components: dict[str, float] = field(default_factory=dict)
+    E_by_stream: dict[str, float] = field(default_factory=dict)
     solids: dict[str, float] = field(default_factory=dict)     # mol solid / mol Li recovered
     I_feed: float | None = None
     I_product: float | None = None
@@ -261,6 +262,20 @@ def run_calculation(inp: CalcInputs) -> CalcResult:
 
     E = sum(E_i.values())
 
+    # Same terms as E_i above, regrouped by STREAM instead of by species —
+    # "how much of E_min comes from what happens to the Feed / Product /
+    # Retentate", rather than "how much comes from each ion". Solid
+    # precipitation is attributed to the Product bucket, since that's the
+    # stream it precipitates out of. These three sum to E exactly (verified
+    # in testing), since it's a regrouping of the same underlying terms,
+    # not a new calculation.
+    E_by_stream = {
+        "Feed": -RT / N * sum(nlna(n["F"][sp], a["F"][sp]) for sp in list(IONS) + ["H2O"]),
+        "Product": RT / N * sum(nlna(n["P"][sp], a["P"][sp]) for sp in list(IONS) + ["H2O"])
+                   + sum(RT / N * n_s * lnKsp[ph] for ph, n_s in solids.items()),
+        "Retentate": RT / N * sum(nlna(n["R"][sp], a["R"][sp]) for sp in list(IONS) + ["H2O"]),
+    }
+
     if E <= 0:
         warnings.append(f"E_min came out non-positive ({E:.3f} kJ/mol) — check inputs; "
                          "this usually means Y, CF, S are inconsistent with each other.")
@@ -295,6 +310,7 @@ def run_calculation(inp: CalcInputs) -> CalcResult:
         E_min=E,
         E_min_LW=E_min_LW,
         E_components=E_components,
+        E_by_stream=E_by_stream,
         solids={ph: v / N for ph, v in solids.items()},
         I_feed=I_F,
         I_product=I_P,
