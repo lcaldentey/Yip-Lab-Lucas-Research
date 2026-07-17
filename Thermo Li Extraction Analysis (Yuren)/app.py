@@ -7,7 +7,7 @@ Run locally with:
 
 This wraps emin_core.py (must be in the same folder) — a PHREEQC/Pitzer-based
 implementation of Yuren's single-point E_min calculation for a Li+Na+Mg brine,
-including the oversaturation / precipitation loop from the flowchart.
+including the oversaturation / precipitation loop
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from emin_core import CalcInputs, run_calculation, MW
 
 import base64 #Used almost explicitly only for embedded container colorization
 
-APP_EXPECTS_SCHEMA = 3
+APP_EXPECTS_SCHEMA = 4
 try:
     from emin_core import SCHEMA_VERSION
 except ImportError:
@@ -127,7 +127,17 @@ with col2:
         unsafe_allow_html=True,
     )
 
-    st.caption(":blue[The following calculator is provided by the Yip Lab's Dr. Yuren Feng, Anna Seeley McGillis [PhD], Lucas Caldentey, and supervised by Dr. Ngai Yin Yip]")
+    st.markdown(
+        """
+        <div style="text-align:center; margin-top:0.4rem;">
+            <span style="color:#ffffff; font-size:0.78rem; font-style:italic; line-height:1.3;">
+                Provided by the Yip Lab \u2014 Dr. Yuren Feng, Anna Seeley McGillis [PhD],
+                Lucas Caldentey, and supervised by Dr. Ngai Yin Yip
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 st.sidebar.title("Inputs")
 
@@ -288,7 +298,7 @@ with c3:
 
 st.divider()
 
-# --- species contribution chart, and Stream-Composition chart ------------
+# --- species contribution chart, and stream-energy chart ------------------
 left, right = st.columns([3, 2])
 
 with left:
@@ -306,22 +316,18 @@ with left:
                "Bars should sum to $E_{\\mathrm{min}}$ above (the pipeline checks this internally).")
 
 with right:
-    st.subheader("Feed, Product & Retentate Composition")
-    stream_ion_order = [c for c in ("Li", "Na", "Mg", "Cl")
-                         if any(c in comp for comp in result.streams.values())]
-    stream_colors = {"Feed (mol/kgw)": "#9285f2", "Product (mol/kgw)": "#8df0ec",
-                      "Retentate (mol/kgw)": "#4884c2"}
-    fig2 = go.Figure()
-    for stream_name, comp in result.streams.items():
-        fig2.add_trace(go.Bar(
-            name=stream_name.replace(" (mol/kgw)", ""),
-            x=stream_ion_order,
-            y=[comp.get(ion, 0.0) for ion in stream_ion_order],
-            marker_color=stream_colors.get(stream_name),
-        ))
-    fig2.update_layout(barmode="group", yaxis_title="mol / kgw", height=320,
-                        margin=dict(l=10, r=10, t=10, b=10),
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02))
+    st.subheader("Energy by Stream")
+    stream_order = ["Feed", "Product", "Retentate"]
+    stream_bar_colors = {"Feed": "#9285f2", "Product": "#8df0ec", "Retentate": "#4884c2"}
+    fig2 = go.Figure(go.Bar(
+        x=stream_order,
+        y=[result.E_by_stream.get(s, 0.0) for s in stream_order],
+        marker_color=[stream_bar_colors[s] for s in stream_order],
+        text=[f"{result.E_by_stream.get(s, 0.0):+.2f}" for s in stream_order],
+        textposition="outside",
+    ))
+    fig2.update_layout(yaxis_title="kJ / mol Li recovered", height=320,
+                        margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig2, width="stretch")
 
 # --- secondary metrics (demoted, shown below the plot) -------------------
