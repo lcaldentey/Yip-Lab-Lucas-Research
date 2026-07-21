@@ -1,4 +1,0 @@
-streamlit>=1.59
-phreeqpython>=1.1
-pandas
-plotly
